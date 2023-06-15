@@ -27,6 +27,26 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+    const userCollection = client.db('melodineDB').collection('userDetails');
+
+    app.post('/allusers', async (req,res)=> {
+      const recievedUser = req.body;
+ 
+      const query = {email: recievedUser.email}
+      const existingUser = await userCollection.findOne(query);
+  
+      if(existingUser) {
+        return res.send({message: 'user already exists'})
+      }
+      const result = await userCollection.insertOne(recievedUser);
+      res.send(result);
+    })
+
+
+
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -34,7 +54,7 @@ async function run() {
     );
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
