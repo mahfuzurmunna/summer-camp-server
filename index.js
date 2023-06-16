@@ -72,15 +72,7 @@ async function run() {
       res.send({ token });
     });
 
-    app.get("/allusers/admin/:email", async (req, res) => {
-      const email = req.params.email;
-
-      const query = { email: email };
-      const user = await userCollection.findOne(query);
-      const result = { admin: user?.role === "admin" };
-      res.send(result);
-    });
-
+    // posting all users to database
     app.post("/allusers", async (req, res) => {
       const recievedUser = req.body;
 
@@ -94,6 +86,15 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/allusers/admin/:email", async (req, res) => {
+      const email = req.params.email;
+
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { admin: user?.role === "admin" };
+      res.send(result);
+    });
+
     // class adding post method
     app.post("/allclasses", async (req, res) => {
       const recievedClass = req.body;
@@ -102,10 +103,68 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/allclasses", async (req, res) => {
+      const result = await classCollcetion.find().toArray();
+      res.send(result);
+    });
+    app.get("/allclasses/sendfeedback/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const result = await classCollcetion.find(filter).toArray();
+      res.send(result);
+    });
+
     app.get("/allusers", async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
+
+    
+    // class approval update patch
+    app.patch("/allclasses/approve/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+
+      const updateDoc = {
+        $set: {
+          status: "approved",
+        },
+      };
+      const result = await classCollcetion.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+    // class denied update patch
+    app.patch("/allclasses/deny/:id", async (req, res) => {
+      const id = req.params.id;
+      
+      const filter = { _id: new ObjectId(id) };
+
+      const updateDoc = {
+        $set: {
+          status: "denied",
+        },
+      };
+      const result = await classCollcetion.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+      app.patch("/allclasses/feedback/:id", async (req, res) => {
+        const id = req.params.id;
+        const newFeed = req.body.feedback;
+        console.log(newFeed)
+        const filter = { _id: new ObjectId(id) };
+        // this option instructs the method to create a document if no documents match the filter
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: {
+            feedback: newFeed,
+          },
+        };
+        const result = await classCollcetion.updateOne(filter, updateDoc, options);
+        res.send(result);
+      });
+
+
 
     // updating the users to admin to instructor
     app.patch("/allusers/admin/:id", async (req, res) => {
