@@ -46,9 +46,40 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const userCollection = client.db("melodineDB").collection("userDetails");
+    const classCollcetion = client.db("melodineDB").collection("classDetails");
+
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "access forbidden" });
+      }
+      next();
+    };
+
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+
+      res.send({ token });
+    });
+
+    app.get("/allusers/admin/:email", async (req, res) => {
+      const email = req.params.email;
+
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { admin: user?.role === "admin" };
+      res.send(result);
+    });
 
     app.post("/allusers", async (req, res) => {
       const recievedUser = req.body;
@@ -60,6 +91,14 @@ async function run() {
         return res.send({ message: "user already exists" });
       }
       const result = await userCollection.insertOne(recievedUser);
+      res.send(result);
+    });
+
+    // class adding post method
+    app.post("/allclasses", async (req, res) => {
+      const recievedClass = req.body;
+
+      const result = await classCollcetion.insertOne(recievedClass);
       res.send(result);
     });
 
