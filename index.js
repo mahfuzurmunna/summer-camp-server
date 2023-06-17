@@ -94,14 +94,34 @@ async function run() {
       const result = { admin: user?.role === "admin" };
       res.send(result);
     });
+     app.get("/allusers/instructor/:email", async (req, res) => {
+       const email = req.params.email;
 
-    // class adding post method
+       const query = { email: email };
+       const user = await userCollection.findOne(query);
+       const result = { instructor: user?.role === "instructor" };
+       res.send(result);
+     });
+
+    // Allclass post method
     app.post("/allclasses", async (req, res) => {
       const recievedClass = req.body;
 
       const result = await classCollcetion.insertOne(recievedClass);
       res.send(result);
     });
+
+    // getting email specific class
+        app.get("/allclasses/:email", async (req, res) => {
+          console.log(req.params.email);
+          const userEmail = req.params.email;
+          const query = {
+            instructorEmail: userEmail,
+          };
+          console.log(query);
+          const result = await classCollcetion.find(query).toArray();
+          res.send(result);
+        });
 
     app.get("/allclasses", async (req, res) => {
       const result = await classCollcetion.find().toArray();
