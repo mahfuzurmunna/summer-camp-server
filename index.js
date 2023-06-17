@@ -50,7 +50,9 @@ async function run() {
 
     const userCollection = client.db("melodineDB").collection("userDetails");
     const classCollcetion = client.db("melodineDB").collection("classDetails");
-    const classCartCollection =   client.db("melodineDB").collection("classCartDetails");
+    const classCartCollection = client
+      .db("melodineDB")
+      .collection("classCartDetails");
 
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
@@ -95,14 +97,14 @@ async function run() {
       const result = { admin: user?.role === "admin" };
       res.send(result);
     });
-     app.get("/allusers/instructor/:email", async (req, res) => {
-       const email = req.params.email;
+    app.get("/allusers/instructor/:email", async (req, res) => {
+      const email = req.params.email;
 
-       const query = { email: email };
-       const user = await userCollection.findOne(query);
-       const result = { instructor: user?.role === "instructor" };
-       res.send(result);
-     });
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { instructor: user?.role === "instructor" };
+      res.send(result);
+    });
 
     // Allclass post method
     app.post("/allclasses", async (req, res) => {
@@ -113,16 +115,16 @@ async function run() {
     });
 
     // getting email specific class
-        app.get("/allclasses/:email", async (req, res) => {
-          console.log(req.params.email);
-          const userEmail = req.params.email;
-          const query = {
-            instructorEmail: userEmail,
-          };
-          console.log(query);
-          const result = await classCollcetion.find(query).toArray();
-          res.send(result);
-        });
+    app.get("/allclasses/:email", async (req, res) => {
+      console.log(req.params.email);
+      const userEmail = req.params.email;
+      const query = {
+        instructorEmail: userEmail,
+      };
+      console.log(query);
+      const result = await classCollcetion.find(query).toArray();
+      res.send(result);
+    });
 
     app.get("/allclasses", async (req, res) => {
       const result = await classCollcetion.find().toArray();
@@ -130,7 +132,7 @@ async function run() {
     });
     app.get("/allclasses/sendfeedback/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = {_id: new ObjectId(id)};
+      const filter = { _id: new ObjectId(id) };
       const result = await classCollcetion.find(filter).toArray();
       res.send(result);
     });
@@ -140,7 +142,6 @@ async function run() {
       res.send(result);
     });
 
-    
     // class approval update patch
     app.patch("/allclasses/approve/:id", async (req, res) => {
       const id = req.params.id;
@@ -157,7 +158,7 @@ async function run() {
     // class denied update patch
     app.patch("/allclasses/deny/:id", async (req, res) => {
       const id = req.params.id;
-      
+
       const filter = { _id: new ObjectId(id) };
 
       const updateDoc = {
@@ -169,23 +170,25 @@ async function run() {
       res.send(result);
     });
 
-      app.patch("/allclasses/feedback/:id", async (req, res) => {
-        const id = req.params.id;
-        const newFeed = req.body.feedback;
-        console.log(newFeed)
-        const filter = { _id: new ObjectId(id) };
-        // this option instructs the method to create a document if no documents match the filter
-        const options = { upsert: true };
-        const updateDoc = {
-          $set: {
-            feedback: newFeed,
-          },
-        };
-        const result = await classCollcetion.updateOne(filter, updateDoc, options);
-        res.send(result);
-      });
-
-
+    app.patch("/allclasses/feedback/:id", async (req, res) => {
+      const id = req.params.id;
+      const newFeed = req.body.feedback;
+      console.log(newFeed);
+      const filter = { _id: new ObjectId(id) };
+      // this option instructs the method to create a document if no documents match the filter
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          feedback: newFeed,
+        },
+      };
+      const result = await classCollcetion.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
 
     // updating the users to admin to instructor
     app.patch("/allusers/admin/:id", async (req, res) => {
@@ -217,42 +220,65 @@ async function run() {
     });
 
     // class cart post method
-        app.post("/classCart", async (req, res) => {
-          const classCart = req.body;
-          const { _id, student } = req.body;
+    app.post("/classCart", async (req, res) => {
+      const classCart = req.body;
+      const { _id, student } = req.body;
 
-          const findCourse = await classCartCollection.findOne({ _id });
+      const findCourse = await classCartCollection.findOne({ _id });
 
-          if (!findCourse) {
-            const result = await classCartCollection.insertOne(
-              classCart
-            );
-            res.send(result);
-          } else {
-            const findUser = await classCartCollection.findOne({
-              _id,
-              student: { $in: student },
-            });
-
-            if (findUser) {
-              res
-                .status(400)
-                .json({ message: "User has already selected the class." });
-            } else {
-              const result = await classCartCollection.updateOne(
-                { _id },
-                { $push: { student: student[0] } }
-              );
-              res.send(result);
-            }
-          }
+      if (!findCourse) {
+        const result = await classCartCollection.insertOne(classCart);
+        res.send(result);
+      } else {
+        const findUser = await classCartCollection.findOne({
+          _id,
+          student: { $in: student },
         });
+
+        if (findUser) {
+          res
+            .status(400)
+            .json({ message: "You have already selected the class lol!" });
+        } else {
+          const result = await classCartCollection.updateOne(
+            { _id },
+            { $push: { student: student[0] } }
+          );
+          res.send(result);
+        }
+      }
+    });
+// class cart getting from email
+    app.get("/classCart/:email", async (req, res) => {
+      const classEmail = req.params.email;
+      const query = { student: { $in: [classEmail] } };
+      const result = await classCartCollection.find(query).toArray();
+      res.send(result);
+    });
+    // class cart delete method
+      app.delete("/classCart/:id/:email", async (req, res) => {
+        const classId = req.params.id;
+        const studentEmail = req.params.email;
+
+        try {
+          const result = await classCartCollection.updateOne(
+            { _id: classId },
+            { $pull: { student: studentEmail } }
+          );
+          res.send(result);
+        } catch (error) {
+          res.status(500).json({ message: "Error deleting the class" });
+        }
+      });
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
+
+
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
