@@ -50,6 +50,7 @@ async function run() {
 
     const userCollection = client.db("melodineDB").collection("userDetails");
     const classCollcetion = client.db("melodineDB").collection("classDetails");
+    const classCartCollection =   client.db("melodineDB").collection("classCartDetails");
 
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
@@ -214,6 +215,38 @@ async function run() {
       const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
+
+    // class cart post method
+        app.post("/classCart", async (req, res) => {
+          const classCart = req.body;
+          const { _id, student } = req.body;
+
+          const findCourse = await classCartCollection.findOne({ _id });
+
+          if (!findCourse) {
+            const result = await classCartCollection.insertOne(
+              classCart
+            );
+            res.send(result);
+          } else {
+            const findUser = await classCartCollection.findOne({
+              _id,
+              student: { $in: student },
+            });
+
+            if (findUser) {
+              res
+                .status(400)
+                .json({ message: "User has already selected the class." });
+            } else {
+              const result = await classCartCollection.updateOne(
+                { _id },
+                { $push: { student: student[0] } }
+              );
+              res.send(result);
+            }
+          }
+        });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
